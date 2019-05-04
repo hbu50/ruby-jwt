@@ -38,6 +38,11 @@ module JWT
 
       @key = find_key(&@keyfinder) if @keyfinder
       @key = ::JWT::JWK::KeyFinder.new(jwks: @options[:jwks]).key_for(header['kid']) if @options[:jwks]
+      @key = ::JWT::X509::KeyFinder.new(x5c: header['x5c']).public_key if header['x5c']
+
+      if @options[:validate_cert] == true && !@header['x5c'].nil?
+        return false unless ::JWT::X509::Validator.new(x5c: header['x5c']).valid?
+      end
 
       Signature.verify(header['alg'], @key, signing_input, @signature)
     end
